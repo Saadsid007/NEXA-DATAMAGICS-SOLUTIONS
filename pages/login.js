@@ -10,12 +10,6 @@ export default function Login() {
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  // Redirect if already logged in
-  if (status === "authenticated") {
-    router.push("/dashboard");
-    return null;
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
