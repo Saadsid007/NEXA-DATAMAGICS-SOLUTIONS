@@ -67,8 +67,8 @@ export const authOptions = {
         token.role = user.role;
         token.status = user.status;
         token.profileComplete = user.profileComplete;
-        token.employeeCode = user.employeeCode;
-        token.assignedManager = user.assignedManager;
+        token.employeeCode = user.employeeCode || null; // Set to null if not present
+        token.assignedManager = user.assignedManager || null; // Set to null if not present
       }
       
       return token;
