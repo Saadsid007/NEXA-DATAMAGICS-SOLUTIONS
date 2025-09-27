@@ -10,6 +10,12 @@ export default function Login() {
   const router = useRouter();
   const { data: session, status } = useSession();
 
+  // If already authenticated, redirect to dashboard
+  if (status === "authenticated") {
+    router.replace("/dashboard");
+    return null;
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -25,7 +31,7 @@ export default function Login() {
     if (res?.error) {
       setError(res.error);
     } else if (res?.ok) {
-      router.push("/dashboard");
+      // Wait for session to update, then redirect (handled above)
     } else {
       setError("An unknown error occurred.");
     }

@@ -81,8 +81,8 @@ export const authOptions = {
           token.profileComplete = updatedUser.profileComplete;
           token.employeeCode = updatedUser.employeeCode;
           token.assignedManager = updatedUser.assignedManager;
-          token.name = updatedUser.name; // <-- FIX: add this
-          token.email = updatedUser.email; // <-- FIX: add this
+          token.name = updatedUser.name;
+          token.email = updatedUser.email;
         }
         // Also apply any session data passed directly
         return { ...token, ...session };
@@ -91,15 +91,15 @@ export const authOptions = {
       return token;
     },
     async session({ session, token }) {
-      // Pass token details to the client-side session object
+      if (!session.user) session.user = {};
       session.user.id = token.id;
       session.user.role = token.role;
       session.user.status = token.status;
       session.user.profileComplete = token.profileComplete;
       session.user.employeeCode = token.employeeCode;
       session.user.assignedManager = token.assignedManager;
-      session.user.name = token.name; // <-- Add this line
-      session.user.email = token.email; // <-- Add this line (optional, for fallback)
+      session.user.name = token.name;
+      session.user.email = token.email;
       return session;
     },
   },
