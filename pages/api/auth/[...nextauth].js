@@ -11,10 +11,12 @@ export const authOptions = {
       credentials: {},
       async authorize(credentials) {
         const { email, password } = credentials;
+        console.log("Authorize called with:", email); // Debug log
 
         try {
           await connectDB();
           const user = await User.findOne({ email });
+          console.log("User found:", user); // Debug log
 
           if (!user) {
             console.log("No user found for email:", email);
@@ -22,6 +24,7 @@ export const authOptions = {
           }
 
           const passwordsMatch = await bcrypt.compare(password, user.password);
+          console.log("Password match result:", passwordsMatch); // Debug log
 
           if (!passwordsMatch) {
             console.log("Password mismatch for user:", email);

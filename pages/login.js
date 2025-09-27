@@ -20,12 +20,11 @@ export default function Login() {
       password,
     });
 
+    console.log("Login response:", res); // Debug log
+
     if (res?.error) {
       setError(res.error);
     } else if (res?.ok) {
-      // After successful sign-in, NextAuth session is updated.
-      // We can't directly get the role here, so we push to a generic path
-      // and let the dashboard/admin pages handle the final redirection.
       router.push("/dashboard");
     } else {
       setError("An unknown error occurred.");
