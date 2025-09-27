@@ -1,5 +1,5 @@
 import { signIn, useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 
@@ -10,11 +10,12 @@ export default function Login() {
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  // If already authenticated, redirect to dashboard
-  if (status === "authenticated") {
-    router.replace("/dashboard");
-    return null;
-  }
+  // Redirect if already authenticated, but only from /login
+  useEffect(() => {
+    if (status === "authenticated" && router.pathname === "/login") {
+      router.replace("/dashboard");
+    }
+  }, [status, router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
