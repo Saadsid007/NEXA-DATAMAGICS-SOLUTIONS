@@ -1,6 +1,5 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { decode } from "next-auth/jwt";
 import { connectDB } from "../../../lib/mongodb";
 import User from "../../../models/User";
 import bcrypt from "bcryptjs";
@@ -11,13 +10,6 @@ export const authOptions = {
       name: "credentials",
       credentials: {},
       async authorize(credentials) {
-        // **THE FIX: Handle the re-signin with the new token**
-        if (credentials.token) {
-          const decodedToken = await decode({ token: credentials.token, secret: process.env.NEXTAUTH_SECRET });
-          return decodedToken; // Trust the decoded token and create a session from it
-        }
-
-        // Original login flow
         const { email, password } = credentials;
 
         try {
