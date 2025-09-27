@@ -17,20 +17,25 @@ export const authOptions = {
           const user = await User.findOne({ email });
 
           if (!user) {
+            console.log("No user found for email:", email);
             throw new Error("Invalid credentials. Please try again.");
           }
 
           const passwordsMatch = await bcrypt.compare(password, user.password);
 
           if (!passwordsMatch) {
+            console.log("Password mismatch for user:", email);
             throw new Error("Invalid credentials. Please try again.");
           }
 
-          // Return the user object to be used in callbacks
-          return user;
+          const plainUser = user.toObject();
+          plainUser._id = user._id.toString();
+
+          console.log("User logged in:", plainUser.email, "Role:", plainUser.role);
+
+          return plainUser;
         } catch (error) {
           console.log("Error in authorize: ", error);
-          // This is much better for debugging than returning null.
           throw new Error(error.message || "Authentication failed.");
         }
       },
@@ -47,16 +52,16 @@ export const authOptions = {
     async jwt({ token, user, trigger, session }) {
       // On initial sign-in, add user details to the token
       if (user) {
-        token.id = user._id ? user._id.toString() : user.id; // Handles both DB user object and decoded token
+        token.id = user._id ? user._id.toString() : user.id;
         token.role = user.role;
         token.status = user.status;
         token.profileComplete = user.profileComplete;
-        token.employeeCode = user.employeeCode || null; // Set to null if not present
-        token.assignedManager = user.assignedManager || null; // Set to null if not present
+        token.employeeCode = user.employeeCode || null;
+        token.assignedManager = user.assignedManager || null;
+        token.name = user.name;
+        token.email = user.email;
       }
 
-      // This is the key part for keeping the session updated.
-      // When the session is updated (e.g., after profile setup), re-fetch user data.
       if (trigger === "update") {
         await connectDB();
         const updatedUser = await User.findById(token.id);
@@ -66,8 +71,9 @@ export const authOptions = {
           token.profileComplete = updatedUser.profileComplete;
           token.employeeCode = updatedUser.employeeCode;
           token.assignedManager = updatedUser.assignedManager;
+          token.name = updatedUser.name;
+          token.email = updatedUser.email;
         }
-        // Also apply any session data passed directly
         return { ...token, ...session };
       }
 
@@ -81,6 +87,8 @@ export const authOptions = {
       session.user.profileComplete = token.profileComplete;
       session.user.employeeCode = token.employeeCode;
       session.user.assignedManager = token.assignedManager;
+      session.user.name = token.name;
+      session.user.email = token.email;
       return session;
     },
   },

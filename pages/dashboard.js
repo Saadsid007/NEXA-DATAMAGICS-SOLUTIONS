@@ -11,14 +11,28 @@ export default function Dashboard() {
   if (status === "loading") {
     return <p>Loading...</p>;
   }
-  
+
+  if (!session || !session.user) {
+    // If session is missing, redirect to login or show error
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-white p-8 rounded-xl shadow-lg">
+          <h2 className="text-xl font-bold text-red-600 mb-4">Session Error</h2>
+          <p className="mb-4">You are not logged in. Please <Link href="/login" className="text-blue-500 underline">login</Link> again.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const userName = session.user.name || session.user.email || "User";
+
   return (
     <>
     <Navbar />
     <Marquee />
     <div className="p-6">
       <div className="bg-white p-8 rounded-xl shadow-md mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Hello, {session.user.name}!</h1>
+        <h1 className="text-3xl font-bold text-gray-800">Hello, {userName}!</h1>
         <p className="text-gray-600 mt-2">Welcome to your personal dashboard. Here are some quick links to get you started.</p>
       </div>
 
