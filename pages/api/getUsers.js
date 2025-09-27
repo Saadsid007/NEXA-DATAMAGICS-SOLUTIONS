@@ -10,8 +10,9 @@ export default async function handler(req, res) {
     return res.status(403).json({ message: "Forbidden" });
   }
 
-  if (req.method !== "GET") {
-    return res.status(405).json({ message: "Only GET requests allowed" });
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    res.setHeader("Allow", ["GET", "HEAD"]);
+    return res.status(405).json({ message: `Method ${req.method} Not Allowed` });
   }
 
   try {

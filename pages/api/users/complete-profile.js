@@ -69,24 +69,6 @@ export default async function handler(req, res) {
       { new: true }
     ).lean();
 
-    // **THE FIX: Generate a new, updated token**
-    // We create a new token payload with the updated user information.
-    const newTokenPayload = {
-      sub: updatedUser._id.toString(),
-      name: updatedUser.name,
-      email: updatedUser.email,
-      role: updatedUser.role,
-      status: updatedUser.status,
-      profileComplete: updatedUser.profileComplete, // This will be true
-    };
-
-    // Sign the new token and send it back to the client.
-    const newJwt = await encode({
-      secret: process.env.NEXTAUTH_SECRET,
-      token: newTokenPayload,
-    });
-    res.status(200).json({ message: "Profile completed successfully", token: newJwt });
-
     // The client will trigger a session update, so we just need to send a success response.
     res.status(200).json({ message: "Profile completed successfully" });
   } catch (error) {
