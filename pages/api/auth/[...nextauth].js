@@ -45,6 +45,16 @@ export const authOptions = {
   },
   callbacks: {
     async jwt({ token, user, trigger, session }) {
+      // On initial sign-in, add user details to the token
+      if (user) {
+        token.id = user._id ? user._id.toString() : user.id; // Handles both DB user object and decoded token
+        token.role = user.role;
+        token.status = user.status;
+        token.profileComplete = user.profileComplete;
+        token.employeeCode = user.employeeCode || null; // Set to null if not present
+        token.assignedManager = user.assignedManager || null; // Set to null if not present
+      }
+
       // This is the key part for keeping the session updated.
       // When the session is updated (e.g., after profile setup), re-fetch user data.
       if (trigger === "update") {
@@ -61,16 +71,6 @@ export const authOptions = {
         return { ...token, ...session };
       }
 
-      // On initial sign-in, add user details to the token
-      if (user) {
-        token.id = user._id ? user._id.toString() : user.id; // Handles both DB user object and decoded token
-        token.role = user.role;
-        token.status = user.status;
-        token.profileComplete = user.profileComplete;
-        token.employeeCode = user.employeeCode || null; // Set to null if not present
-        token.assignedManager = user.assignedManager || null; // Set to null if not present
-      }
-      
       return token;
     },
     async session({ session, token }) {
