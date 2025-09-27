@@ -17,20 +17,21 @@ export const authOptions = {
           const user = await User.findOne({ email });
 
           if (!user) {
-            return null;
+            throw new Error("Invalid credentials. Please try again.");
           }
 
           const passwordsMatch = await bcrypt.compare(password, user.password);
 
           if (!passwordsMatch) {
-            return null;
+            throw new Error("Invalid credentials. Please try again.");
           }
 
           // Return the user object to be used in callbacks
           return user;
         } catch (error) {
           console.log("Error in authorize: ", error);
-          return null;
+          // This is much better for debugging than returning null.
+          throw new Error(error.message || "Authentication failed.");
         }
       },
     }),
