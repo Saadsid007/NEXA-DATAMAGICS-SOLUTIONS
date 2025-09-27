@@ -17,25 +17,28 @@ export const authOptions = {
           const user = await User.findOne({ email });
 
           if (!user) {
-            console.log("No user found for email:", email); // Added logging
+            console.log("No user found for email:", email);
             throw new Error("Invalid credentials. Please try again.");
           }
 
           const passwordsMatch = await bcrypt.compare(password, user.password);
 
           if (!passwordsMatch) {
-            console.log("Password mismatch for user:", email); // Added logging
+            console.log("Password mismatch for user:", email);
             throw new Error("Invalid credentials. Please try again.");
           }
 
-          // Return a plain JS object (not a Mongoose document)
-          const plainUser = user.toObject();
-          plainUser._id = user._id.toString();
-
-          // Added logging for role
-          console.log("User logged in:", plainUser.email, "Role:", plainUser.role);
-
-          return plainUser;
+          // Return only the required fields as a plain object
+          return {
+            _id: user._id.toString(),
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            profileComplete: user.profileComplete,
+            employeeCode: user.employeeCode || null,
+            assignedManager: user.assignedManager || null
+          };
         } catch (error) {
           console.log("Error in authorize: ", error);
           throw new Error(error.message || "Authentication failed.");
@@ -60,6 +63,8 @@ export const authOptions = {
         token.profileComplete = user.profileComplete;
         token.employeeCode = user.employeeCode || null; // Set to null if not present
         token.assignedManager = user.assignedManager || null; // Set to null if not present
+        token.name = user.name;
+        token.email = user.email;
       }
 
       // This is the key part for keeping the session updated.
@@ -73,6 +78,8 @@ export const authOptions = {
           token.profileComplete = updatedUser.profileComplete;
           token.employeeCode = updatedUser.employeeCode;
           token.assignedManager = updatedUser.assignedManager;
+          token.name = updatedUser.name; // <-- FIX: add this
+          token.email = updatedUser.email; // <-- FIX: add this
         }
         // Also apply any session data passed directly
         return { ...token, ...session };
