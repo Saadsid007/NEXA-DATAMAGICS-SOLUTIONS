@@ -33,7 +33,7 @@ export const authOptions = {
 
           // Return only the required fields as a plain object
           return {
-            _id: user._id.toString(),
+            id: user._id.toString(), // Use 'id' instead of '_id'
             name: user.name,
             email: user.email,
             role: user.role,
@@ -60,7 +60,7 @@ export const authOptions = {
     async jwt({ token, user, trigger, session }) {
       // On initial sign-in, add user details to the token
       if (user) {
-        token.id = user._id ? user._id.toString() : user.id; // Handles both DB user object and decoded token
+        token.id = user.id; // The user object from authorize now has 'id'
         token.role = user.role;
         token.status = user.status;
         token.profileComplete = user.profileComplete;
