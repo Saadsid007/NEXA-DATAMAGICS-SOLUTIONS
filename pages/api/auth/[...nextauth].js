@@ -32,16 +32,10 @@ export const authOptions = {
           }
 
           // Return only the required fields as a plain object
-          return {
-            id: user._id.toString(), // Use 'id' instead of '_id'
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            status: user.status,
-            profileComplete: user.profileComplete,
-            employeeCode: user.employeeCode || null,
-            assignedManager: user.assignedManager || null
-          };
+          // **THE MAJOR CHANGE**: We only return the user object.
+          // The JWT callback will handle extracting the data.
+          // This ensures the entire user object is available to the JWT callback.
+          return user;
         } catch (error) {
           console.log("Error in authorize: ", error);
           throw new Error(error.message || "Authentication failed.");
@@ -60,7 +54,8 @@ export const authOptions = {
     async jwt({ token, user, trigger, session }) {
       // On initial sign-in, add user details to the token
       if (user) {
-        token.id = user.id; // The user object from authorize now has 'id'
+        // The 'user' object is the full user object from the 'authorize' callback
+        token.id = user._id.toString();
         token.role = user.role;
         token.status = user.status;
         token.profileComplete = user.profileComplete;
