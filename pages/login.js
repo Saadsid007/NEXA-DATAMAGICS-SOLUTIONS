@@ -8,20 +8,15 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
-  const { data: session, status } = useSession();
-
-  // Redirect if already authenticated, but only from /login
-  if (status === "authenticated" && router.pathname === "/login") {
-      router.replace("/dashboard");
-      return null;
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
+    // Let next-auth handle the redirection. It will redirect to the
+    // page the user was trying to access, or to the root ('/').
+    // The middleware will then correctly route them to their dashboard.
     const res = await signIn("credentials", {
-      redirect: false,
       email,
       password,
     });
@@ -30,10 +25,6 @@ export default function Login() {
 
     if (res?.error) {
       setError(res.error);
-    } else if (res?.ok) {
-      // Wait for session to update, then redirect (handled above)
-    } else {
-      setError("An unknown error occurred.");
     }
   };
 
