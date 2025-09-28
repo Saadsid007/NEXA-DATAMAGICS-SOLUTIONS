@@ -19,6 +19,7 @@ const Sidebar = () => {
   const [pendingCount, setPendingCount] = useState(0);
 
   const isAdmin = session?.user?.role === "admin";
+  const isManager = session?.user?.role === "manager";
 
   useEffect(() => {
     if (isAdmin) {
@@ -45,15 +46,25 @@ const Sidebar = () => {
 
   if (isAdmin) {
     // Admin/Manager specific links
-    navLinks.push(
-      { name: "Leave Applications", href: "/admin/leave-applications", icon: FiFileText },
+    navLinks = [
+      { name: "Dashboard", href: "/admin", icon: FiGrid },
+      { name: "My Profile", href: "/profile", icon: FiUser },
       { name: "Pending Requests", href: "/admin/pending-requests", icon: FiUserCheck },
       { name: "All Users", href: "/admin/users", icon: FiUsers }
-    );
-  } else {
+    ];
+  } else if (isManager) {
+    navLinks = [
+      { name: "Dashboard", href: "/manager", icon: FiGrid },
+      { name: "My Profile", href: "/profile", icon: FiUser },
+      {name: "Apply for Leave", href: "/leave-application", icon: FiFileText },
+      { name: "My Leaves", href: "/manager/my-leaves", icon: FiFileText },
+      { name: "Manage Leaves", href: "/manager/leave-requests", icon: FiFileText },
+    ];
+  }else {
     // Regular user specific links
     navLinks.push(
-      { name: "Apply for Leave", href: "/leave-application", icon: FiFileText }
+      { name: "Apply for Leave", href: "/leave-application", icon: FiFileText },
+      { name: "My Leaves", href: "/user/my-leaves", icon: FiFileText }
     );
   }
 

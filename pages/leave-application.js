@@ -6,10 +6,11 @@ import { FiCalendar, FiFileText, FiSend } from 'react-icons/fi';
 
 export default function LeaveApplicationPage() {
   const { data: session, status } = useSession();
+  const [managerName, setManagerName] = useState('');
   const router = useRouter();
 
   // Form state
-  const [leaveType, setLeaveType] = useState('Planned Leave');
+    const [leaveType, setLeaveType] = useState('Planned Leave');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
@@ -22,12 +23,54 @@ export default function LeaveApplicationPage() {
     }
   }, [status, router]);
 
+  useEffect(() => {
+    const fetchManager = async () => {
+      if (session?.user?.assignedManager) {
+        try {
+          const res = await fetch(`/api/users/by-email?email=${session.user.assignedManager}`);
+          if (res.ok) {
+            const managerData = await res.json();
+            setManagerName(managerData.name || 'Unknown Manager');
+          } else {
+            setManagerName('Unknown Manager');
+            toast.error('Could not fetch manager details.');
+          }
+        } catch (error) {
+          console.error('Failed to fetch manager name:', error);
+          setManagerName('Unknown Manager');
+          toast.error('Failed to fetch manager details.');
+        }
+      } else {
+        setManagerName('No Manager Assigned');
+      }
+    };
+
+    if (session) {
+      fetchManager();
+    }
+  }, [session]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!startDate || !endDate || !reason) {
       toast.error('Please fill all the fields.');
       return;
     }
+
+    // Past date validation
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to the beginning of today for accurate comparison
+    if (new Date(startDate) < today) {
+      toast.error('Start date cannot be in the past.');
+      return;
+    }
+
+    // End date validation
+    if (new Date(endDate) < new Date(startDate)) {
+      toast.error('End date cannot be before the start date.');
+      return;
+    }
+
     setIsSubmitting(true);
     const loadingToast = toast.loading('Submitting your application...');
 
@@ -35,7 +78,6 @@ export default function LeaveApplicationPage() {
       const res = await fetch('/api/leaves/apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // <-- Yeh line add karein
         body: JSON.stringify({
           leaveType,
           startDate,
@@ -44,19 +86,17 @@ export default function LeaveApplicationPage() {
         }),
       });
 
-      toast.dismiss(loadingToast);
-
       if (res.ok) {
+        toast.dismiss(loadingToast);
         toast.success('Leave application submitted successfully!');
         // Reset form
         setLeaveType('Planned Leave');
         setStartDate('');
         setEndDate('');
         setReason('');
-        // Optionally redirect user
-        // router.push('/my-leaves'); 
       } else {
         const errorData = await res.json();
+        toast.dismiss(loadingToast);
         toast.error(errorData.message || 'Failed to submit application.');
       }
     } catch (error) {
@@ -68,7 +108,7 @@ export default function LeaveApplicationPage() {
     }
   };
 
-  if (status === 'loading' || !session) {
+   if (status === 'loading' || !session) {
     return <p>Loading...</p>;
   }
 
@@ -76,17 +116,35 @@ export default function LeaveApplicationPage() {
     <>
       <Toaster position="top-center" reverseOrder={false} />
       <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md mt-8">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Apply for Leave</h1>
+        <h1 className="text-3xl font-semibold text-gray-800 mb-6 border-b pb-4">Apply for Leave</h1>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Pre-filled fields */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">Employee Name</label>
-              <input type="text" value={session.user.name || ''} disabled className="mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm" />
+              <label className="block text-sm font-medium text-gray-700">
+                Employee Name
+              </label>
+              <input
+                type="text"
+                value={session.user.name || ''}
+                disabled
+                className="mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm"
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Employee Code</label>
-              <input type="text" value={session.user.employeeCode || ''} disabled className="mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm" />
+              <label className="block text-sm font-medium text-gray-700">
+                Employee Code
+              </label>
+              <input
+                type="text"
+                value={session.user.employeeCode || ''}
+                disabled
+                className="mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm"
+              />
+            </div>
+             <div>
+              <label className="block text-sm font-medium text-gray-700">Assign Manager</label>
+              <input type="text" value={session.user.assignedManager || 'Not Assigned'} disabled className="mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm" />
             </div>
           </div>
 

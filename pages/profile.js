@@ -1,6 +1,6 @@
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
@@ -9,14 +9,7 @@ export default function ProfilePage() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    // Middleware handles unauthenticated redirects.
-    if (status === "authenticated" && !userData) {
-      fetchUserData();
-    }
-  }, [status, session]);
-
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     if (!session) return;
     setIsLoading(true);
     try {
@@ -24,9 +17,9 @@ export default function ProfilePage() {
       const res = await fetch(`/api/users/by-email?email=${session.user.email}`);
       if (!res.ok) throw new Error("Could not fetch user data.");
 
-      const userData = await res.json();
-      if (userData) {
-        setUserData(userData);
+      const data = await res.json();
+      if (data) {
+        setUserData(data);
       } else {
         setMessage("Your data could not be found. Please contact an admin.");
       }
@@ -35,7 +28,14 @@ export default function ProfilePage() {
     } finally {
       setIsLoading(false);
     }
-  }; 
+  }, [session]); // useCallback depends on session
+
+  useEffect(() => {
+    // Middleware handles unauthenticated redirects.
+    if (status === "authenticated" && !userData) {
+      fetchUserData();
+    }
+  }, [status, userData, fetchUserData]); // Added fetchUserData and userData to dependency array
 
   if (status === "loading" || (isLoading && !userData)) {
     return <div className="text-center p-10">Loading profile...</div>;

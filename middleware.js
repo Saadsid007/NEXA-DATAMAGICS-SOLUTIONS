@@ -34,7 +34,9 @@ export async function middleware(req) {
   if (status === 'approved') {
     // If trying to access a public page (login, register, home) while logged in, redirect to the correct dashboard
     if (isAuthPage || pathname === '/') {
-      const destination = role === 'admin' ? '/admin' : '/dashboard';
+      let destination = '/dashboard'; // Default for 'user'
+      if (role === 'admin') destination = '/admin';
+      if (role === 'manager') destination = '/manager';
       return NextResponse.redirect(new URL(destination, req.url));
     }
 
@@ -44,15 +46,17 @@ export async function middleware(req) {
     }
   }
   
-  if (role === 'user') {
+  if (role === 'user' || role === 'manager') {
     // Redirect to profile setup if the token indicates the profile is incomplete.
     // The database check is removed as middleware should not connect to the DB.
     if (!profileComplete && pathname !== '/profile-setup') {
       return NextResponse.redirect(new URL('/profile-setup', req.url));
     }
 
-    if (profileComplete && pathname.startsWith('/profile-setup')) {
-      return NextResponse.redirect(new URL('/dashboard', req.url));
+    if (profileComplete && pathname === '/profile-setup') {
+      // Redirect to the correct dashboard based on role after profile setup
+      const destination = role === 'manager' ? '/manager' : '/dashboard';
+      return NextResponse.redirect(new URL(destination, req.url));
     }
   }
 

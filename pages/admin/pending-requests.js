@@ -1,110 +1,118 @@
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/router';
-import { FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/router";
+import { FiUserCheck, FiUserX, FiShield } from "react-icons/fi";
 
-export default function PendingRequestsPage() {
+const PendingRequestsPage = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [pendingUsers, setPendingUsers] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-
-  const fetchPendingUsers = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch('/api/users/pending');
-      if (!res.ok) {
-        throw new Error('Failed to fetch pending users.');
-      }
-      const data = await res.json();
-      setPendingUsers(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      if (session.user.role !== 'admin') {
-        router.push('/dashboard');
-      } else {
-        fetchPendingUsers();
-      }
+    if (status === "loading") return;
+    if (!session || session.user.role !== "admin") {
+      router.push("/dashboard");
+      return;
     }
-  }, [status, session, router]);
 
-  const handleUpdateStatus = async (userId, newStatus) => {
-    setMessage('');
-    setError('');
+    const fetchPendingUsers = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/admin/pending-users");
+        if (!res.ok) {
+          throw new Error("Failed to fetch pending users");
+        }
+        const data = await res.json();
+        setPendingUsers(data);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPendingUsers();
+  }, [session, status, router]);
+
+  const handleRequest = async (userId, action) => {
     try {
-      const res = await fetch('/api/users/update-status', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, status: newStatus }),
+      const res = await fetch("/api/admin/handle-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, action }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || `Failed to ${action} user`);
+      }
 
-      setMessage(`User has been ${newStatus}.`);
-      // Refresh the list of pending users
-      fetchPendingUsers();
+      // Update UI by removing the user from the list
+      setPendingUsers(pendingUsers.filter((user) => user._id !== userId));
     } catch (err) {
-      setError(err.message);
+      console.error("Error handling request:", err);
+      alert(`Error: ${err.message}`);
     }
   };
 
-  if (isLoading) return <div className="p-4">Loading pending requests...</div>;
+  if (status === "loading" || loading) {
+    return <div className="text-center p-10">Loading...</div>;
+  }
 
   return (
-    <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Pending User Requests</h1>
-      {error && <p className="text-red-500 bg-red-100 p-3 rounded-md mb-4">{error}</p>}
-      {message && <p className="text-green-500 bg-green-100 p-3 rounded-md mb-4">{message}</p>}
+    <>
+      <div className="p-4 sm:p-6 lg:p-8 bg-gray-100 min-h-screen">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-3xl font-bold text-gray-900 mb-6">Pending Approval Requests</h1>
 
-      {pendingUsers.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white">
-            <thead className="bg-gray-200">
-              <tr>
-                <th className="text-left py-3 px-4">Name</th>
-                <th className="text-left py-3 px-4">Email</th>
-                <th className="text-left py-3 px-4">Phone</th>
-                <th className="text-center py-3 px-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
+
+          {pendingUsers.length === 0 ? (
+            <div className="text-center bg-white p-10 rounded-lg shadow-md">
+              <p className="text-gray-500 text-lg">No pending requests at the moment.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
               {pendingUsers.map((user) => (
-                <tr key={user._id} className="border-b">
-                  <td className="py-3 px-4">{user.name}</td>
-                  <td className="py-3 px-4">{user.email}</td>
-                  <td className="py-3 px-4">{user.phone}</td>
-                  <td className="py-3 px-4 flex justify-center gap-2">
+                <div key={user._id} className="bg-white p-5 rounded-lg shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div>
+                    <p className="font-bold text-lg text-gray-800">{user.name}</p>
+                    <p className="text-sm text-gray-600">{user.email}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Registered on: {new Date(user.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={() => handleUpdateStatus(user._id, 'approved')}
-                      className="flex items-center gap-1 bg-green-500 text-white px-3 py-1 rounded-md hover:bg-green-600"
+                      onClick={() => handleRequest(user._id, "approveAsUser")}
+                      className="flex items-center gap-2 bg-green-500 text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-green-600 transition-colors"
                     >
-                      <FaCheckCircle /> Approve
+                      <FiUserCheck /> Approve as User
                     </button>
                     <button
-                      onClick={() => handleUpdateStatus(user._id, 'rejected')}
-                      className="flex items-center gap-1 bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600"
+                      onClick={() => handleRequest(user._id, "approveAsManager")}
+                      className="flex items-center gap-2 bg-blue-500 text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-blue-600 transition-colors"
                     >
-                      <FaTimesCircle /> Reject
+                      <FiShield /> Approve as Manager
                     </button>
-                  </td>
-                </tr>
+                    <button
+                      onClick={() => handleRequest(user._id, "reject")}
+                      className="flex items-center gap-2 bg-red-500 text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-red-600 transition-colors"
+                    >
+                      <FiUserX /> Reject
+                    </button>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          )}
         </div>
-      ) : (
-        <p className="text-gray-500">No pending requests at the moment.</p>
-      )}
-    </div>
+      </div>
+    </>
   );
-}
+};
+
+export default PendingRequestsPage;

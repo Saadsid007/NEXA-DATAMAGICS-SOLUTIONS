@@ -248,9 +248,9 @@ export default function ProfileSetup() {
             >
               <option value="" disabled>Select a manager</option>
               {/* NOTE: Replace these with actual manager emails from your DB or config */}
-              <option value="manager1@example.com">Manager One (manager1@example.com)</option>
-              <option value="manager2@example.com">Manager Two (manager2@example.com)</option>
-              <option value="manager3@example.com">Manager Three (manager3@example.com)</option>
+              <option value="manager1@example.com">Manager One (manager1@gmail.com)</option>
+              <option value="manager2@example.com">Manager Two (manager2@gmail.com)</option>
+              <option value="manager3@example.com">Manager Three (manager3@gmail.com)</option>
             </select>
           </div>
 

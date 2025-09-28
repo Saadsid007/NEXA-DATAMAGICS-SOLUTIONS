@@ -60,7 +60,7 @@ export const authOptions = {
         token.status = user.status;
         token.profileComplete = user.profileComplete;
         token.employeeCode = user.employeeCode || null; // Set to null if not present
-        token.assignedManager = user.assignedManager || null; // Set to null if not present
+        token.assignedManager = user.managerAssign || null; // Corrected field name from User model
         token.name = user.name;
         token.email = user.email;
       }
@@ -75,7 +75,7 @@ export const authOptions = {
           token.status = updatedUser.status;
           token.profileComplete = updatedUser.profileComplete;
           token.employeeCode = updatedUser.employeeCode;
-          token.assignedManager = updatedUser.assignedManager;
+          token.assignedManager = updatedUser.managerAssign; // Corrected field name
           token.name = updatedUser.name;
           token.email = updatedUser.email;
         }

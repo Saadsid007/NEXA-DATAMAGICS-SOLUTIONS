@@ -1,4 +1,5 @@
-import { getSession } from 'next-auth/react';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../auth/[...nextauth]";
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import Leave from '@/models/Leave';
@@ -8,47 +9,55 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  const session = await getSession({ req });
+  const session = await getServerSession(req, res, authOptions);
 
   if (!session) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  await connectDB();
-
   try {
+    await connectDB();
     const { leaveType, startDate, endDate, reason } = req.body;
 
-    // Find the user in the database to get their assigned manager
-    const user = await User.findById(session.user.id);
+    // 1. Find the current user in the database to get their assigned manager
+    const currentUser = await User.findById(session.user.id).lean();
 
-    if (!user) {
+    if (!currentUser) {
       return res.status(404).json({ message: 'User not found.' });
     }
 
-    if (!user.assignedManager) {
-      return res.status(400).json({ message: 'No manager assigned. Please contact HR.' });
+    if (!currentUser.managerAssign) {
+      return res.status(400).json({ message: "No manager is assigned to you. Please contact admin." });
     }
 
-    // Create a new leave application
+    // 2. Validate that the assigned manager exists and has the 'manager' role
+    const managerUser = await User.findOne({ email: currentUser.managerAssign, role: 'manager' }).lean();
+    if (!managerUser) {
+      return res.status(400).json({ 
+        message: "Your assigned manager's account is not active or does not exist. Please contact admin." 
+      });
+    }
+
+    // 3. Create a new leave document with the correct schema
     const newLeave = new Leave({
-      user: user._id,
-      employeeName: user.name,
-      employeeCode: user.employeeCode,
-      manager: user.assignedManager, // Assign to the user's manager
+      user: session.user.id,
+      managerEmail: currentUser.managerAssign,
       leaveType,
       startDate,
       endDate,
       reason,
-      // Status will be 'Pending' by default from the model
+      status: 'pending', // Default status
     });
 
+    // 4. Save the leave application
     await newLeave.save();
 
-    res.status(201).json({ message: 'Leave application submitted successfully!', leave: newLeave });
+    // TODO: Implement email notification to the manager (currentUser.managerAssign) here.
+
+    res.status(201).json({ message: 'Leave application submitted successfully!' });
 
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('Error submitting leave application:', error);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 }
