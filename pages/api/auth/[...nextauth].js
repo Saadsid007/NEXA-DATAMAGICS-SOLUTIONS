@@ -15,7 +15,7 @@ export const authOptions = {
 
         try {
           await connectDB();
-          const user = await User.findOne({ email });
+          const user = await User.findOne({ email }).lean(); // Use .lean() for a plain JS object
           console.log("User found:", user); // Debug log
 
           if (!user) {

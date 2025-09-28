@@ -11,11 +11,10 @@ export default function Login() {
   const { data: session, status } = useSession();
 
   // Redirect if already authenticated, but only from /login
-  useEffect(() => {
-    if (status === "authenticated" && router.pathname === "/login") {
+  if (status === "authenticated" && router.pathname === "/login") {
       router.replace("/dashboard");
-    }
-  }, [status, router]);
+      return null;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
