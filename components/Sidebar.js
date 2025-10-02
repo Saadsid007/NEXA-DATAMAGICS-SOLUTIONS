@@ -48,7 +48,7 @@ const Sidebar = () => {
     // Admin/Manager specific links
     navLinks = [
       { name: "Dashboard", href: "/admin", icon: FiGrid },
-      { name: "My Profile", href: "/profile", icon: FiUser },
+      { name: "My Profile", href: "/admin/profile", icon: FiUser },
       { name: "Pending Requests", href: "/admin/pending-requests", icon: FiUserCheck },
       { name: "All Users", href: "/admin/users", icon: FiUsers }
     ];
@@ -58,6 +58,7 @@ const Sidebar = () => {
       { name: "My Profile", href: "/profile", icon: FiUser },
       {name: "Apply for Leave", href: "/leave-application", icon: FiFileText },
       { name: "My Leaves", href: "/manager/my-leaves", icon: FiFileText },
+      { name: "Assigned Users", href: "/manager/user-assigned", icon: FiUsers },
       { name: "Manage Leaves", href: "/manager/leave-requests", icon: FiFileText },
     ];
   }else {
