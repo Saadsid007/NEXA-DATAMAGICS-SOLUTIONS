@@ -1,6 +1,7 @@
 import { getToken } from 'next-auth/jwt';
 import { NextResponse } from 'next/server';
 
+// Helper function to determine the correct dashboard URL based on user role
 function getRoleDashboard(role) {
   if (role === 'admin') return '/admin';
   if (role === 'manager') return '/manager';
@@ -8,73 +9,66 @@ function getRoleDashboard(role) {
 }
 
 export async function middleware(req) {
+  // Get the token from the request
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const { pathname } = req.nextUrl;
 
+  // Define public paths that don't require authentication
   const publicPaths = ['/login', '/register', '/'];
   const isPublicPath = publicPaths.includes(pathname);
 
-  // SCENARIO 1: User is not authenticated
+  // --- SCENARIO 1: User is NOT authenticated ---
   if (!token) {
-    // If they are trying to access a protected route, redirect to login
+    // If they are trying to access a protected route, redirect them to the login page.
     if (!isPublicPath) {
       return NextResponse.redirect(new URL('/login', req.url));
     }
-    // Otherwise, allow them to access public pages
+    // Otherwise, allow access to public pages.
     return NextResponse.next();
   }
 
-  // SCENARIO 2: User is authenticated
+  // --- SCENARIO 2: User IS authenticated ---
   const { role, profileComplete, status } = token;
   const roleDashboard = getRoleDashboard(role);
 
-  // Redirect away from pending page if status is approved
-  if (status === 'approved' && pathname === '/pending-approval') {
-    return NextResponse.redirect(new URL(roleDashboard, req.url));
-  }
-
-  // Redirect to pending page if status is not approved
+  // Handle users who are not yet approved
   if (status !== 'approved' && pathname !== '/pending-approval') {
     return NextResponse.redirect(new URL('/pending-approval', req.url));
   }
 
-  // Redirect away from profile setup if profile is complete
-  if (profileComplete && pathname === '/profile-setup') {
-    return NextResponse.redirect(new URL(roleDashboard, req.url));
-  }
-
-  // Redirect to profile setup if profile is not complete (and they are approved)
+  // Handle approved users who haven't completed their profile
   if (status === 'approved' && !profileComplete && pathname !== '/profile-setup') {
     return NextResponse.redirect(new URL('/profile-setup', req.url));
   }
 
-  // SCENARIO 3: User is fully authenticated, approved, and profile is complete
+  // --- SCENARIO 3: User is fully set up (authenticated, approved, profile complete) ---
   if (status === 'approved' && profileComplete) {
-    // If they are on a public path, redirect to their dashboard
-    if (isPublicPath) {
+    // If they are on a page that should not be accessible after login,
+    // redirect them to their correct dashboard.
+    const restrictedAfterLoginPaths = ['/login', '/register', '/', '/pending-approval', '/profile-setup'];
+    if (restrictedAfterLoginPaths.includes(pathname)) {
       return NextResponse.redirect(new URL(roleDashboard, req.url));
     }
 
-    // Role-based path protection
+    // Role-based path protection to prevent unauthorized access
     if (role === 'admin' && !pathname.startsWith('/admin') && pathname !== '/profile') {
       return NextResponse.redirect(new URL('/admin', req.url));
     }
-    if (role === 'manager' && (pathname.startsWith('/admin') || pathname.startsWith('/user'))) {
+    if (role === 'manager' && (pathname.startsWith('/admin'))) {
       return NextResponse.redirect(new URL('/manager', req.url));
     }
     if (role === 'user' && (pathname.startsWith('/admin') || pathname.startsWith('/manager'))) {
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
 
-    // If user tries to access generic dashboard, redirect to their specific one
+    // If a non-user (admin/manager) lands on the generic /dashboard,
+    // redirect them to their specific dashboard.
     if (pathname === '/dashboard' && role !== 'user') {
       return NextResponse.redirect(new URL(roleDashboard, req.url));
     }
-
-    // If no rules match, allow access
-      return NextResponse.next();
   }
 
+  // If no redirection rules matched, allow the request to proceed.
   return NextResponse.next();
 }
 
@@ -83,3 +77,4 @@ export const config = {
   // This matcher runs the middleware on all paths except for API routes and static files.
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };
+
