@@ -13,23 +13,17 @@ export default function Login() {
     e.preventDefault();
     setError("");
 
-    // Let next-auth handle the redirection. It will redirect to the
-    // page the user was trying to access, or to the root ('/').
-    // The middleware will then correctly route them to their dashboard.
     const res = await signIn("credentials", {
       email,
       password,
-      redirect: false, // Prevent next-auth from automatically redirecting
+      redirect: true,
+      callbackUrl: "/dashboard", // Explicitly tell NextAuth where to go on success
     });
 
     console.log("Login response:", res); // Debug log
 
     if (res?.error) {
       setError(res.error);
-    } else if (res?.ok) {
-      // On successful login, manually push to the dashboard.
-      // The middleware will take over from there and route to the correct page.
-      router.push("/dashboard");
     }
   };
 
