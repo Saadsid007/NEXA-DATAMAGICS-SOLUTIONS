@@ -32,8 +32,13 @@ export async function middleware(req) {
 
   // If user is approved, handle redirects for logged-in users
   if (status === 'approved') {
-    // If trying to access a public page (login, register, home) while logged in, redirect to the correct dashboard
-    if (isAuthPage || pathname === '/') {
+    // If an authenticated user tries to access a public page (login, register, home)
+    // OR the generic dashboard, redirect them to their specific role-based dashboard.
+    if (
+      isAuthPage ||
+      pathname === '/' ||
+      (pathname === '/dashboard' && role !== 'user')
+    ) {
       let destination = '/dashboard'; // Default for 'user'
       if (role === 'admin') destination = '/admin';
       if (role === 'manager') destination = '/manager';

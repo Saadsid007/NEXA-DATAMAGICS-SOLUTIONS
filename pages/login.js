@@ -19,12 +19,17 @@ export default function Login() {
     const res = await signIn("credentials", {
       email,
       password,
+      redirect: false, // Prevent next-auth from automatically redirecting
     });
 
     console.log("Login response:", res); // Debug log
 
     if (res?.error) {
       setError(res.error);
+    } else if (res?.ok) {
+      // On successful login, manually push to the dashboard.
+      // The middleware will take over from there and route to the correct page.
+      router.push("/dashboard");
     }
   };
 
