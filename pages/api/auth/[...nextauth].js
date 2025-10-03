@@ -63,6 +63,7 @@ export const authOptions = {
         token.assignedManager = user.managerAssign || null; // Corrected field name from User model
         token.name = user.name;
         token.email = user.email;
+        token.profileImage = user.profileImage || null;
       }
 
       // This is the key part for keeping the session updated.
@@ -78,6 +79,7 @@ export const authOptions = {
           token.assignedManager = updatedUser.managerAssign; // Corrected field name
           token.name = updatedUser.name;
           token.email = updatedUser.email;
+          token.profileImage = updatedUser.profileImage;
         }
         // Also apply any session data passed directly
         return { ...token, ...session };
@@ -95,6 +97,7 @@ export const authOptions = {
       session.user.assignedManager = token.assignedManager;
       session.user.name = token.name;
       session.user.email = token.email;
+      session.user.profileImage = token.profileImage;
       return session;
     },
   },

@@ -28,7 +28,6 @@ export default function Dashboard() {
 
   return (
     <>
-    <Navbar />
     <Marquee />
     <div className="p-6">
       <div className="bg-white p-8 rounded-xl shadow-md mb-6">

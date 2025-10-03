@@ -24,6 +24,7 @@ const userSchema = new mongoose.Schema(
     employmentType: { type: String },
     holdingAssets: { type: String },
     managerAssign: { type: String },
+    profileImage: { type: String },
     customFields: {
       type: Map,
       of: String,

@@ -2,7 +2,19 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../api/auth/[...nextauth]";
 import { connectDB } from "../../../lib/mongodb";
 import User from "../../../models/User";
-import { encode } from "next-auth/jwt";
+import { formidable } from 'formidable';
+import { uploadImage } from "@/lib/cloudinary";
+import fs from 'fs/promises';
+
+// Disable Next.js body parser to handle multipart/form-data
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+// Helper to parse the form
+const parseForm = (req) => new Promise((resolve, reject) => formidable().parse(req, (err, fields, files) => err ? reject(err) : resolve([fields, files])));
 
 // Function to generate employee code
 async function generateEmployeeCode() {
@@ -34,33 +46,37 @@ export default async function handler(req, res) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  try {
-    await connectDB();
-    const { userId } = req.body;
+  try {    
+    const [fields, files] = await parseForm(req);
 
-    // **THE MAJOR CHANGE: Manually building the update object**
-    // This is a more direct and foolproof way to ensure all data is captured.
-    const updateData = {
-      designation: req.body.designation,
-      process: req.body.process,
-      dateOfJoining: req.body.dateOfJoining,
-      shiftTiming: req.body.shiftTiming,
-      workLocation: req.body.workLocation,
-      currentCity: req.body.currentCity,
-      systemServiceTag: req.body.systemServiceTag,
-      employmentType: req.body.employmentType,
-      holdingAssets: req.body.holdingAssets,
-      managerAssign: req.body.managerAssign, // Explicitly including the manager
-    };
+    const getFieldValue = (field) => Array.isArray(field) ? field[0] : field;
+
+    const userId = getFieldValue(fields.userId);
 
     if (session.user.id !== userId) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
+    await connectDB();
+
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+
+    let profileImageUrl = user.profileImage; // Keep old image if new one isn't provided
+    const profileImageFile = getFieldValue(files.profileImage);
+    if (profileImageFile) {
+      const fileContent = await fs.readFile(profileImageFile.filepath);
+      const base64Image = `data:${profileImageFile.mimetype};base64,${fileContent.toString('base64')}`;
+      profileImageUrl = await uploadImage(base64Image);
+    }
+
+    const updateData = {
+      ...Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, getFieldValue(value)])),
+      profileImage: profileImageUrl,
+    };
+    delete updateData.userId; // Don't try to update the userId field
 
     // Generate employee code and update user in MongoDB
     const employeeCode = await generateEmployeeCode();

@@ -17,6 +17,7 @@ export default function ProfileSetup() {
     employmentType: "Full-time",
     holdingAssets: "",
     managerAssign: "",
+    profileImage: null,
   });
   
   const [message, setMessage] = useState("");
@@ -24,7 +25,14 @@ export default function ProfileSetup() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (e.target.type === 'file') {
+      const file = e.target.files[0];
+      if (file) {
+        setFormData((prev) => ({ ...prev, profileImage: file }));
+      }
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -37,11 +45,20 @@ export default function ProfileSetup() {
     setIsLoading(true);
     setMessage("Saving your profile...");
 
-    try {      
+    try {
+      const body = new FormData();
+      body.append('userId', session.user.id);
+
+      for (const key in formData) {
+        if (formData[key]) {
+          body.append(key, formData[key]);
+        }
+      }
+
       const res = await fetch("/api/users/complete-profile", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, userId: session.user.id }),
+        // Headers are set automatically for FormData
+        body: body,
       });
 
       const data = await res.json();
@@ -147,6 +164,7 @@ export default function ProfileSetup() {
               name="shiftTiming"
               value={formData.shiftTiming}
               onChange={handleChange}
+              required
               className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="9 AM to 6 PM">9 AM to 6 PM</option>
@@ -164,6 +182,7 @@ export default function ProfileSetup() {
               name="workLocation"
               value={formData.workLocation}
               onChange={handleChange}
+              required
               className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="Remote">Remote</option>
@@ -210,6 +229,7 @@ export default function ProfileSetup() {
               name="employmentType"
               value={formData.employmentType}
               onChange={handleChange}
+              required
               className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="Full-time">Full-time</option>
@@ -235,23 +255,34 @@ export default function ProfileSetup() {
           </div>
 
           <div>
-            <label htmlFor="managerAssign" className="block text-sm font-medium text-gray-700">
-              Assign Manager
+            <label htmlFor="profileImage" className="block text-sm font-medium text-gray-700">
+              Profile Picture
             </label>
-            <select
+            <input
+              type="file"
+              id="profileImage"
+              name="profileImage"
+              accept="image/png, image/jpeg, image/jpg"
+              onChange={handleChange}
+              required
+              className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="managerAssign" className="block text-sm font-medium text-gray-700">
+              Assign Manager&apos;s Email
+            </label>
+            <input
+              type="email"
               id="managerAssign"
               name="managerAssign"
               value={formData.managerAssign}
               onChange={handleChange}
               required
+              placeholder="Enter your manager's email address"
               className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="" disabled>Select a manager</option>
-              {/* NOTE: Replace these with actual manager emails from your DB or config */}
-              <option value="manager1@example.com">Manager One (manager1@gmail.com)</option>
-              <option value="manager2@example.com">Manager Two (manager2@gmail.com)</option>
-              <option value="manager3@example.com">Manager Three (manager3@gmail.com)</option>
-            </select>
+            />
           </div>
 
           <button
