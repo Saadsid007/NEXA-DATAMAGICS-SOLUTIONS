@@ -45,10 +45,24 @@ export async function middleware(req) {
       return NextResponse.redirect(new URL(destination, req.url));
     }
 
-    // If an admin tries to access a non-admin page, redirect them to the admin dashboard
-    if (role === 'admin' && !pathname.startsWith('/admin')) {
+    // If an admin tries to access a non-admin page (that isn't their own profile),
+    // redirect them to the admin dashboard.
+    if (
+      role === 'admin' &&
+      !pathname.startsWith('/admin') &&
+      pathname !== '/profile' // Allow admin to see their own profile page if they land there
+    ) {
       return NextResponse.redirect(new URL('/admin', req.url));
     }
+
+    // If a manager tries to access an admin-only page, redirect them to their dashboard.
+    if (
+      role === 'manager' &&
+      pathname.startsWith('/admin')
+    ) {
+      return NextResponse.redirect(new URL('/manager', req.url));
+    }
+
   }
   
   if (role === 'user' || role === 'manager') {
