@@ -45,7 +45,7 @@ export async function middleware(req) {
   if (status === 'approved' && profileComplete) {
     // If they are on a page that should not be accessible after login,
     // redirect them to their correct dashboard.
-    const restrictedAfterLoginPaths = ['/login', '/register', '/', '/pending-approval', '/profile-setup'];
+    const restrictedAfterLoginPaths = ['/login', '/register', '/']; // Removed /pending-approval and /profile-setup
     if (restrictedAfterLoginPaths.includes(pathname)) {
       return NextResponse.redirect(new URL(roleDashboard, req.url));
     }
@@ -54,7 +54,7 @@ export async function middleware(req) {
     if (role === 'admin' && !pathname.startsWith('/admin') && pathname !== '/profile') {
       return NextResponse.redirect(new URL('/admin', req.url));
     }
-    if (role === 'manager' && (pathname.startsWith('/admin'))) {
+    if (role === 'manager' && (pathname.startsWith('/admin') || pathname.startsWith('/user'))) {
       return NextResponse.redirect(new URL('/manager', req.url));
     }
     if (role === 'user' && (pathname.startsWith('/admin') || pathname.startsWith('/manager'))) {
@@ -77,4 +77,3 @@ export const config = {
   // This matcher runs the middleware on all paths except for API routes and static files.
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };
-

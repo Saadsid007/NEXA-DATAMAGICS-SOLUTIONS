@@ -69,7 +69,6 @@ export const authOptions = {
       // This is the key part for keeping the session updated.
       // When the session is updated (e.g., after profile setup), re-fetch user data.
       if (trigger === "update") {
-        console.log("JWT update triggered. New session data:", session);
         await connectDB();
         const updatedUser = await User.findById(token.id).lean();
         if (updatedUser) {
@@ -77,13 +76,13 @@ export const authOptions = {
           token.status = updatedUser.status;
           token.profileComplete = updatedUser.profileComplete;
           token.employeeCode = updatedUser.employeeCode;
-          token.assignedManager = updatedUser.managerAssign || null; // Corrected field name
+          token.assignedManager = updatedUser.managerAssign || null;
           token.name = updatedUser.name;
           token.email = updatedUser.email;
           token.profileImage = updatedUser.profileImage;
         }
-        // Also apply any session data passed directly
-        return { ...token, ...session };
+        // Also apply any session data passed directly, which is what `update()` sends
+        return { ...token, ...session }; // Apply any session data passed directly
       }
 
       return token;
