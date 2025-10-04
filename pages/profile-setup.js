@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
 
 export default function ProfileSetup() {
-  const { data: session, status, update} = useSession();
+  const { data: session, status, update, getSession } = useSession();
   const router = useRouter();
   
   const [formData, setFormData] = useState({

@@ -1,5 +1,5 @@
-import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { signIn, useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 
@@ -13,16 +13,16 @@ export default function Login() {
     e.preventDefault();
     setError("");
 
-    // Let next-auth handle the redirect. The middleware will intercept
-    // and redirect to the correct page based on user role and status.
+    // Let next-auth handle the redirection. It will redirect to the
+    // page the user was trying to access, or to the root ('/').
+    // The middleware will then correctly route them to their dashboard.
     const res = await signIn("credentials", {
       email,
       password,
-      redirect: true,
-      callbackUrl: '/dashboard', // A generic callback, middleware will override
     });
 
-    // This part will only be reached if there is an error
+    console.log("Login response:", res); // Debug log
+
     if (res?.error) {
       setError(res.error);
     }

@@ -70,19 +70,19 @@ export const authOptions = {
       // When the session is updated (e.g., after profile setup), re-fetch user data.
       if (trigger === "update") {
         await connectDB();
-        const updatedUser = await User.findById(token.id).lean();
+        const updatedUser = await User.findById(token.id);
         if (updatedUser) {
           token.role = updatedUser.role;
           token.status = updatedUser.status;
           token.profileComplete = updatedUser.profileComplete;
           token.employeeCode = updatedUser.employeeCode;
-          token.assignedManager = updatedUser.managerAssign || null;
+          token.assignedManager = updatedUser.managerAssign; // Corrected field name
           token.name = updatedUser.name;
           token.email = updatedUser.email;
           token.profileImage = updatedUser.profileImage;
         }
-        // Also apply any session data passed directly, which is what `update()` sends
-        return { ...token, ...session }; // Apply any session data passed directly
+        // Also apply any session data passed directly
+        return { ...token, ...session };
       }
 
       return token;
