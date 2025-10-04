@@ -1,5 +1,5 @@
-import { signIn, useSession, getSession } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { signIn } from "next-auth/react";
+import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 
@@ -13,35 +13,18 @@ export default function Login() {
     e.preventDefault();
     setError("");
 
+    // Let next-auth handle the redirect. The middleware will intercept
+    // and redirect to the correct page based on user role and status.
     const res = await signIn("credentials", {
       email,
       password,
-      redirect: false, // Prevent next-auth from automatically redirecting
+      redirect: true,
+      callbackUrl: '/dashboard', // A generic callback, middleware will override
     });
 
-    console.log("Login response:", res); // Debug log
-
+    // This part will only be reached if there is an error
     if (res?.error) {
       setError(res.error);
-    } else if (res?.ok) {
-      // On successful login, fetch the latest session and then redirect manually
-      const currentSession = await getSession();
-      if (currentSession) {
-        if (currentSession.user.status !== 'approved') {
-          router.push('/pending-approval');
-        } else if (!currentSession.user.profileComplete) {
-          router.push('/profile-setup');
-        } else if (currentSession.user.role === 'admin') {
-          router.push('/admin');
-        } else if (currentSession.user.role === 'manager') {
-          router.push('/manager');
-        } else {
-          router.push('/dashboard');
-        }
-      } else {
-        // Fallback if session is somehow not available after successful login
-        router.push('/dashboard');
-      }
     }
   };
 

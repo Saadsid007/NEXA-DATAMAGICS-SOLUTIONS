@@ -31,41 +31,43 @@ export async function middleware(req) {
   const { role, profileComplete, status } = token;
   const roleDashboard = getRoleDashboard(role);
 
-  // Handle users who are not yet approved
-  if (status !== 'approved' && pathname !== '/pending-approval') {
-    return NextResponse.redirect(new URL('/pending-approval', req.url));
+  // --- REDIRECTION LOGIC for authenticated users ---
+
+  // 1. User is not approved yet
+  if (status !== 'approved') {
+    // If they are not on the pending page, redirect them.
+    if (pathname !== '/pending-approval') {
+      return NextResponse.redirect(new URL('/pending-approval', req.url));
+    }
+    return NextResponse.next();
   }
 
-  // Handle approved users who haven't completed their profile
-  if (status === 'approved' && !profileComplete && pathname !== '/profile-setup') {
-    return NextResponse.redirect(new URL('/profile-setup', req.url));
+  // 2. User is approved but profile is not complete
+  if (!profileComplete) {
+    // If they are not on the setup page, redirect them.
+    if (pathname !== '/profile-setup') {
+      return NextResponse.redirect(new URL('/profile-setup', req.url));
+    }
+    return NextResponse.next();
   }
 
-  // --- SCENARIO 3: User is fully set up (authenticated, approved, profile complete) ---
-  if (status === 'approved' && profileComplete) {
-    // If they are on a page that should not be accessible after login,
-    // redirect them to their correct dashboard.
-    const restrictedAfterLoginPaths = ['/login', '/register', '/']; // Removed /pending-approval and /profile-setup
-    if (restrictedAfterLoginPaths.includes(pathname)) {
-      return NextResponse.redirect(new URL(roleDashboard, req.url));
-    }
+  // 3. User is fully set up (approved and profile complete)
 
-    // Role-based path protection to prevent unauthorized access
-    if (role === 'admin' && !pathname.startsWith('/admin') && pathname !== '/profile') {
-      return NextResponse.redirect(new URL('/admin', req.url));
-    }
-    if (role === 'manager' && (pathname.startsWith('/admin') || pathname.startsWith('/user'))) {
-      return NextResponse.redirect(new URL('/manager', req.url));
-    }
-    if (role === 'user' && (pathname.startsWith('/admin') || pathname.startsWith('/manager'))) {
-      return NextResponse.redirect(new URL('/dashboard', req.url));
-    }
+  // If they are on a public/setup page, redirect to their role-specific dashboard
+  const afterLoginRedirectPaths = ['/login', '/register', '/', '/pending-approval', '/profile-setup'];
+  // The user is authenticated, approved, and has a complete profile.
+  // If they are on any page that should only be seen before being fully set up,
+  // redirect them to their correct dashboard.
+  if (afterLoginRedirectPaths.includes(pathname) || pathname === '/dashboard' && role !== 'user') {
+    return NextResponse.redirect(new URL(roleDashboard, req.url));
+  }
 
-    // If a non-user (admin/manager) lands on the generic /dashboard,
-    // redirect them to their specific dashboard.
-    if (pathname === '/dashboard' && role !== 'user') {
-      return NextResponse.redirect(new URL(roleDashboard, req.url));
-    }
+  // Role-based path protection
+  if (pathname.startsWith('/admin') && role !== 'admin') {
+    return NextResponse.redirect(new URL(roleDashboard, req.url));
+  }
+  if (pathname.startsWith('/manager') && role !== 'manager' && role !== 'admin') {
+    return NextResponse.redirect(new URL(roleDashboard, req.url));
   }
 
   // If no redirection rules matched, allow the request to proceed.
