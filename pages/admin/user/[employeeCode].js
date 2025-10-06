@@ -135,7 +135,7 @@ export default function UserProfilePage() {
           <form onSubmit={handleUpdateProfile}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-md">
               {Object.entries(formData).map(([key, value]) => {
-                if (['_id', 'createdAt', 'updatedAt', '__v', 'profileComplete', 'profileImage' 'customFields'].includes(key)) return null;
+                if (['_id', 'createdAt', 'updatedAt', '__v', 'profileComplete', 'profileImage', 'customFields'].includes(key)) return null;
                 return renderField(key, value);
               })}
             </div>
