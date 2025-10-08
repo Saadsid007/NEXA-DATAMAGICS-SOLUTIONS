@@ -109,16 +109,17 @@ export default function ProfilePage() {
   return (
     <>
       <Toaster position="top-center" />
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-4xl mx-auto my-8">
-        <div className="flex justify-between items-start mb-8">
+      <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-xl shadow-lg w-full max-w-4xl mx-auto my-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <div className="relative w-32 h-32 rounded-full ring-4 ring-blue-500 ring-offset-4 overflow-hidden flex-shrink-0">
               <Image
                 src={imagePreview || userData?.profileImage || '/default-avatar.png'}
                 alt="Profile Picture"
-                layout="fill"
-                objectFit="cover"
-                className="object-cover w-full h-full"
+                fill
+                sizes="(max-width: 768px) 10vw, (max-width: 1200px) 5vw, 128px"
+                priority
+                className="object-cover"
               />
               {isEditMode && (
                 <label htmlFor="profileImageInput" className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
@@ -141,7 +142,7 @@ export default function ProfilePage() {
                   name="name"
                   value={formData?.name || ''}
                   onChange={handleInputChange}
-                  className="text-3xl font-bold text-gray-800 bg-gray-100 border-2 border-gray-300 rounded-md px-2 py-1"
+                  className="text-3xl w-full  font-bold text-gray-800 bg-gray-100 border-2 border-gray-300 rounded-md px-2 py-1"
                 />
               ) : (
                 <h1 className="text-3xl font-bold text-gray-800">{userData?.name}</h1>
@@ -149,7 +150,7 @@ export default function ProfilePage() {
               <p className="text-gray-500 capitalize">{userData?.role}</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             {!isEditMode ? (
               <button onClick={() => setIsEditMode(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                 <FiEdit /> Edit Profile

@@ -189,16 +189,17 @@ export default function AdminProfilePage() {
       <Toaster position="top-center" />
       <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
         <div className="bg-white p-8 rounded-2xl shadow-lg">
-          <div className="flex flex-col sm:flex-row justify-between items-start mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             <div className="flex items-center gap-6">
               <div className="relative w-24 h-24">
                 <div className="relative h-24 w-24 rounded-full overflow-hidden shadow-md ring-2 ring-indigo-200">
                   <Image
                     src={imagePreview || userData?.profileImage || '/default-avatar.png'}
                     alt="Profile Picture"
-                    layout="fill"
-                    objectFit="cover"
-                    className="object-cover w-full h-full"
+                    fill
+                    sizes="(max-width: 768px) 10vw, 96px"
+                    priority
+                    className="object-cover"
                   />
                 </div>
                 {isEditMode && (
@@ -220,20 +221,22 @@ export default function AdminProfilePage() {
                 <p className="mt-1 text-gray-500">View and manage your personal information.</p>
               </div>
             </div>
-            {!isEditMode ? (
-              <button onClick={() => setIsEditMode(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+            <div className="flex gap-2 w-full sm:w-auto">
+            {!isEditMode ?(
+              <button onClick={() => setIsEditMode(true)} className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors w-full sm:w-auto">
                 <FiEdit /> Edit Profile
               </button>
             ) : (
-              <div className="flex gap-2">
+              <>
                 <button onClick={handleUpdateProfile} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
                   <FiSave /> Save
                 </button>
                 <button onClick={() => { setIsEditMode(false); setFormData({ ...userData, ...(userData.customFields || {}) }); setShowAddField(false); setNewProfileImage(null); setImagePreview(null); }} className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
                   <FiX /> Cancel
                 </button>
-              </div>
+              </>
             )}
+            </div>
           </div>
 
           <form onSubmit={handleUpdateProfile}>
