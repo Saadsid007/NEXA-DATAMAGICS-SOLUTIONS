@@ -2,7 +2,8 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/router";
 import { useEffect, useState, useCallback } from "react";
 import toast, { Toaster } from 'react-hot-toast';
-import { FiEdit, FiSave, FiX, FiTrash2, FiPlusCircle, FiXCircle } from 'react-icons/fi';
+import Image from 'next/image';
+import { FiEdit, FiSave, FiX, FiTrash2, FiPlusCircle, FiXCircle, FiCamera } from 'react-icons/fi';
 
 export default function AdminProfilePage() {
   const { data: session, status, update } = useSession();
@@ -12,6 +13,8 @@ export default function AdminProfilePage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [newProfileImage, setNewProfileImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showAddField, setShowAddField] = useState(false);
   const [newFieldName, setNewFieldName] = useState('');
@@ -46,8 +49,16 @@ export default function AdminProfilePage() {
   }, [status, session, router, fetchUserData]);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, files } = e.target;
+    if (type === 'file') {
+      const file = files[0];
+      if (file) {
+        setNewProfileImage(file);
+        setImagePreview(URL.createObjectURL(file));
+      }
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleAddNewField = () => {
@@ -71,19 +82,31 @@ export default function AdminProfilePage() {
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     const loadingToast = toast.loading('Updating profile...');
+
+    const body = new FormData();
+    // Append all form fields (standard and custom)
+    for (const key in formData) {
+      if (key !== 'customFields' && key !== '_id' && !key.startsWith('__')) {
+        body.append(key, formData[key]);
+      }
+    }
+    // Append the new image if one was selected
+    if (newProfileImage) {
+      body.append('profileImage', newProfileImage);
+    }
+
     try {
       const res = await fetch('/api/admin/update-profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: body,
       });
 
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || 'Failed to update profile.');
       }
-
-      await update(); // This updates the session
+      const resultData = await res.json();
+      await update({ profileImage: resultData.newImageUrl }); // This updates the session with the new image
       toast.success('Profile updated successfully!', { id: loadingToast });
       setIsEditMode(false);
       fetchUserData(); // Re-fetch to show updated data
@@ -166,10 +189,36 @@ export default function AdminProfilePage() {
       <Toaster position="top-center" />
       <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
         <div className="bg-white p-8 rounded-2xl shadow-lg">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">My Admin Profile</h1>
-              <p className="mt-1 text-gray-500">View and manage your personal information.</p>
+          <div className="flex flex-col sm:flex-row justify-between items-start mb-8">
+            <div className="flex items-center gap-6">
+              <div className="relative w-24 h-24">
+                <div className="relative h-24 w-24 rounded-full overflow-hidden shadow-md ring-2 ring-indigo-200">
+                  <Image
+                    src={imagePreview || userData?.profileImage || '/default-avatar.png'}
+                    alt="Profile Picture"
+                    layout="fill"
+                    objectFit="cover"
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+                {isEditMode && (
+                  <label htmlFor="profileImageInput" className="absolute -bottom-2 -right-2 bg-white p-2 rounded-full shadow-md cursor-pointer hover:bg-gray-100 transition-colors">
+                    <FiCamera className="text-indigo-600" />
+                    <input
+                      id="profileImageInput"
+                      type="file"
+                      name="profileImage"
+                      accept="image/png, image/jpeg, image/jpg"
+                      onChange={handleInputChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">My Admin Profile</h1>
+                <p className="mt-1 text-gray-500">View and manage your personal information.</p>
+              </div>
             </div>
             {!isEditMode ? (
               <button onClick={() => setIsEditMode(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
@@ -180,7 +229,7 @@ export default function AdminProfilePage() {
                 <button onClick={handleUpdateProfile} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
                   <FiSave /> Save
                 </button>
-                <button onClick={() => { setIsEditMode(false); setFormData({ ...userData, ...(userData.customFields || {}) }); setShowAddField(false); }} className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                <button onClick={() => { setIsEditMode(false); setFormData({ ...userData, ...(userData.customFields || {}) }); setShowAddField(false); setNewProfileImage(null); setImagePreview(null); }} className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
                   <FiX /> Cancel
                 </button>
               </div>
@@ -190,7 +239,7 @@ export default function AdminProfilePage() {
           <form onSubmit={handleUpdateProfile}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-md">
               {Object.entries(formData).map(([key, value]) => {
-                if (['_id', 'createdAt', 'updatedAt', '__v', 'profileComplete', 'role', 'status', 'customFields'].includes(key)) return null;
+                if (['_id', 'createdAt', 'updatedAt', '__v', 'profileComplete', 'profileImage', 'role', 'status', 'customFields'].includes(key)) return null;
                 return renderField(key, value);
               })}
             </div>

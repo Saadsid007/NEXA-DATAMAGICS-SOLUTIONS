@@ -51,7 +51,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       { name: "Dashboard", href: "/admin", icon: FiGrid },
       { name: "My Profile", href: "/admin/profile", icon: FiUser },
       { name: "Pending Requests", href: "/admin/pending-requests", icon: FiUserCheck },
-      { name: "All Users", href: "/admin/users", icon: FiUsers }
+      { name: "All Users", href: "/admin/users", icon: FiUsers },
+      { name: "Manage Leaves", href: "/admin/manage-leaves", icon: FiFileText }
     ];
   } else if (isManager) {
     navLinks = [

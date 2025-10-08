@@ -2,7 +2,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { useEffect, useState, useCallback } from "react";
 import toast, { Toaster } from 'react-hot-toast';
-import { FiEdit, FiSave, FiX, FiPlusCircle, FiXCircle, FiArrowLeft } from 'react-icons/fi';
+import Image from 'next/image';
+import { FiEdit, FiSave, FiX, FiPlusCircle, FiXCircle, FiArrowLeft, FiCamera } from 'react-icons/fi';
 
 export default function UserProfilePage() {
   const { data: session, status } = useSession();
@@ -117,10 +118,22 @@ export default function UserProfilePage() {
           <FiArrowLeft /> Back to All Users
         </button>
         <div className="bg-white p-8 rounded-2xl shadow-lg">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">{userData.name}&apos;s Profile</h1>
-              <p className="mt-1 text-gray-500">Employee Code: {userData.employeeCode}</p>
+          <div className="flex flex-col sm:flex-row justify-between items-start mb-8">
+            <div className="flex items-center gap-6">
+              <div className="relative h-24 w-24 rounded-full overflow-hidden shadow-md ring-2 ring-indigo-200">
+                <Image
+                  src={userData.profileImage || '/default-avatar.png'}
+                  alt={`${userData.name}'s profile picture`}
+                  layout="fill"
+                  objectFit="cover"
+                  className="object-cover w-full h-full"
+                />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">{userData.name}</h1>
+                <p className="mt-1 text-gray-500">Employee Code: {userData.employeeCode}</p>
+                <p className="text-sm text-gray-500 capitalize">{userData.role}</p>
+              </div>
             </div>
             {!isEditMode ? (
               <button onClick={() => setIsEditMode(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"><FiEdit /> Edit Profile</button>
@@ -135,7 +148,7 @@ export default function UserProfilePage() {
           <form onSubmit={handleUpdateProfile}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-md">
               {Object.entries(formData).map(([key, value]) => {
-                if (['_id', 'createdAt', 'updatedAt', '__v', 'profileComplete', 'customFields'].includes(key)) return null;
+                if (['_id', 'createdAt', 'updatedAt', '__v', 'profileComplete', 'profileImage', 'customFields'].includes(key)) return null;
                 return renderField(key, value);
               })}
             </div>

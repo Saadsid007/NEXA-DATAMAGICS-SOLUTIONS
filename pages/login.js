@@ -21,8 +21,6 @@ export default function Login() {
       password,
     });
 
-    console.log("Login response:", res); // Debug log
-
     if (res?.error) {
       setError(res.error);
     }

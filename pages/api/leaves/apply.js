@@ -30,8 +30,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: "No manager is assigned to you. Please contact admin." });
     }
 
-    // 2. Validate that the assigned manager exists and has the 'manager' role
-    const managerUser = await User.findOne({ email: currentUser.managerAssign, role: 'manager' }).lean();
+    // 2. Validate that the assigned person exists and has the 'manager' or 'admin' role
+    const managerUser = await User.findOne({ email: currentUser.managerAssign, role: { $in: ['manager', 'admin'] } }).lean();
     if (!managerUser) {
       return res.status(400).json({ 
         message: "Your assigned manager's account is not active or does not exist. Please contact admin." 

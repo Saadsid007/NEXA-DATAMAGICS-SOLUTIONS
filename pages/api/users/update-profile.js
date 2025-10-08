@@ -5,7 +5,7 @@ import User from "@/models/User";
 import { IncomingForm } from 'formidable';
 import { v2 as cloudinary } from 'cloudinary';
 
-// Disable Next.js body parser for this route
+// Disable Next.js body parser for this route to handle multipart/form-data
 export const config = {
   api: {
     bodyParser: false,
@@ -24,8 +24,8 @@ export default async function handler(req, res) {
   }
 
   const session = await getServerSession(req, res, authOptions);
-  if (!session || session.user.role !== "admin") {
-    return res.status(403).json({ message: "Forbidden: Admins only" });
+  if (!session) {
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
   try {
@@ -34,17 +34,17 @@ export default async function handler(req, res) {
     const form = new IncomingForm();
 
     const data = await new Promise((resolve, reject) => {
-        form.parse(req, (err, fields, files) => {
-            if (err) return reject(err);
-            resolve({ fields, files });
-        });
+      form.parse(req, (err, fields, files) => {
+        if (err) return reject(err);
+        resolve({ fields, files });
+      });
     });
 
     const { fields, files } = data;
     const { profileImage } = files;
     let newImageUrl = null;
 
-    // 1. Handle Image Upload
+    // 1. Handle Image Upload to Cloudinary if a new image is provided
     if (profileImage && profileImage[0]) {
       const result = await cloudinary.uploader.upload(profileImage[0].filepath, {
         folder: 'user_profiles',
@@ -55,37 +55,29 @@ export default async function handler(req, res) {
 
     // 2. Prepare data for MongoDB update
     const updateData = {};
-    const customFields = {};
-
-    // Define fields that are part of the main User schema and can be edited by the admin for themselves.
-    // This is a security measure to prevent unwanted fields from being updated.
-    const allowedUserFields = ['name', 'phone', 'currentCity', 'process', 'workLocation'];
-    const predefinedKeys = Object.keys(User.schema.paths);
+    const allowedUserFields = ['name', 'phone'];
 
     for (const key in fields) {
       const value = Array.isArray(fields[key]) ? fields[key][0] : fields[key];
-      if (allowedUserFields.includes(key) || predefinedKeys.includes(key)) {
-        // Only update specific, safe, predefined fields
-        if (['name', 'phone', 'currentCity', 'process', 'workLocation'].includes(key)) {
-            updateData[key] = value;
-        }
-      } else {
-        // Everything else is a custom field
-        customFields[key] = value;
+      if (allowedUserFields.includes(key)) {
+        updateData[key] = value;
       }
     }
 
     if (newImageUrl) {
       updateData.profileImage = newImageUrl;
     }
-    updateData.customFields = customFields;
 
     // 3. Update the user in the database
-    await User.findOneAndUpdate({ email: session.user.email }, { $set: updateData });
+    await User.findByIdAndUpdate(session.user.id, { $set: updateData });
 
-    res.status(200).json({ message: "Profile updated successfully", newImageUrl: newImageUrl || session.user.profileImage });
+    res.status(200).json({
+      message: "Profile updated successfully",
+      newImageUrl: newImageUrl || session.user.profileImage, // Return new or existing image URL
+      newName: updateData.name || session.user.name,
+    });
   } catch (error) {
-    console.error("Error updating admin profile:", error);
+    console.error("Error updating user profile:", error);
     res.status(500).json({ message: "Server error updating profile", error: error.message });
   }
 }
