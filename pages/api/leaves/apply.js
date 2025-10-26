@@ -1,44 +1,100 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]";
-import { connectDB } from '@/lib/mongodb';
-import User from '@/models/User';
-import Leave from '@/models/Leave';
+import { connectDB } from "@/lib/mongodb";
+import User from "@/models/User";
+import Leave from "@/models/Leave";
+import { sendLeaveApplicationEmailToManager } from "@/lib/email"; 
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import multer from 'multer';
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+const upload = multer({ storage: multer.memoryStorage() });
+
+const runMiddleware = (req, res, fn) => {
+  return new Promise((resolve, reject) => {
+    fn(req, res, (result) => {
+      if (result instanceof Error) return reject(result);
+      return resolve(result);
+    });
+  });
+};
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
-
-  const session = await getServerSession(req, res, authOptions);
-
-  if (!session) {
-    return res.status(401).json({ message: 'Unauthorized' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ message: "Method Not Allowed" });
   }
 
   try {
     await connectDB();
+
+    const session = await getServerSession(req, res, authOptions);
+    if (!session) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    await runMiddleware(req, res, upload.single("attachment"));
+
     const { leaveType, startDate, endDate, reason } = req.body;
+    const attachment = req.file;
+    let attachmentUrl = null;
 
-    // 1. Find the current user in the database to get their assigned manager
+    if (attachment) {
+      // Sanitize the filename to handle special characters for the URL
+      const sanitizedOriginalName = encodeURIComponent(attachment.originalname.replace(/ /g, '_'));
+      const fileName = `${session.user.id}/${Date.now()}-${sanitizedOriginalName}`;
+      
+      const { data, error } = await supabaseAdmin.storage
+        .from('leave-attachments')
+        .upload(fileName, attachment.buffer, {
+          contentType: attachment.mimetype,
+        });
+
+      if (error) {
+        console.error('Supabase Upload Error:', error);
+        throw new Error('Failed to upload attachment to Supabase.');
+      }
+
+      attachmentUrl = supabaseAdmin.storage.from('leave-attachments').getPublicUrl(data.path).data.publicUrl;
+    }
+
+    const existingPendingLeave = await Leave.findOne({
+      user: session.user.id,
+      status: "pending",
+    });
+
+    if (existingPendingLeave) {
+      return res
+        .status(400)
+        .json({ message: "You already have a pending leave request." });
+    }
+
     const currentUser = await User.findById(session.user.id).lean();
-
     if (!currentUser) {
-      return res.status(404).json({ message: 'User not found.' });
+      return res.status(404).json({ message: "User not found." });
     }
-
     if (!currentUser.managerAssign) {
-      return res.status(400).json({ message: "No manager is assigned to you. Please contact admin." });
-    }
-
-    // 2. Validate that the assigned person exists and has the 'manager' or 'admin' role
-    const managerUser = await User.findOne({ email: currentUser.managerAssign, role: { $in: ['manager', 'admin'] } }).lean();
-    if (!managerUser) {
-      return res.status(400).json({ 
-        message: "Your assigned manager's account is not active or does not exist. Please contact admin." 
+      return res.status(400).json({
+        message: "No manager is assigned to you. Please contact admin.",
       });
     }
 
-    // 3. Create a new leave document with the correct schema
+    const managerUser = await User.findOne({
+      email: currentUser.managerAssign,
+      role: { $in: ["manager", "admin"] },
+    }).lean();
+
+    if (!managerUser) {
+      return res.status(400).json({
+        message:
+          "Your assigned manager's account is not active or does not exist. Please contact admin.",
+      });
+    }
+
     const newLeave = new Leave({
       user: session.user.id,
       managerEmail: currentUser.managerAssign,
@@ -46,18 +102,23 @@ export default async function handler(req, res) {
       startDate,
       endDate,
       reason,
-      status: 'pending', // Default status
+      status: "pending",
+      attachmentUrl,
     });
 
-    // 4. Save the leave application
     await newLeave.save();
 
-    // TODO: Implement email notification to the manager (currentUser.managerAssign) here.
+    await sendLeaveApplicationEmailToManager(
+      newLeave,
+      currentUser,
+      managerUser
+    );
 
-    res.status(201).json({ message: 'Leave application submitted successfully!' });
-
+    res
+      .status(201)
+      .json({ message: "Leave application submitted successfully!" });
   } catch (error) {
-    console.error('Error submitting leave application:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
+    console.error("Error submitting leave application:", error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 }

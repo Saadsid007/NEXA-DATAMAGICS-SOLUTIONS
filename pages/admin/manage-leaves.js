@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import toast, { Toaster } from 'react-hot-toast';
+import LeaveLayout from '@/components/LeaveLayout';
+import AttachmentModal from '@/components/AttachmentModal';
+import { FiPaperclip } from 'react-icons/fi';
+import { usePendingCounts } from '@/context/PendingCountContext';
 
 const LeaveStatusBadge = ({ status }) => {
     const baseClasses = "px-2 py-1 text-xs font-semibold rounded-full";
@@ -40,6 +44,8 @@ export default function ManageLeaveRequestsAdmin() {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedReason, setSelectedReason] = useState(null);
+    const [selectedAttachment, setSelectedAttachment] = useState(null);
+    const { fetchCounts } = usePendingCounts();
 
     useEffect(() => {
         if (sessionStatus === 'loading') return;
@@ -63,7 +69,7 @@ export default function ManageLeaveRequestsAdmin() {
         };
 
         fetchRequests();
-    }, [session, sessionStatus, router]);
+    }, [session, sessionStatus, router]); // fetchCounts is stable
 
     const handleStatusUpdate = async (leaveId, newStatus) => {
         const originalRequests = [...requests];
@@ -82,6 +88,7 @@ export default function ManageLeaveRequestsAdmin() {
                 throw new Error(errorData.message);
             }
             toast.success(`Request has been ${newStatus}.`);
+            fetchCounts(); // Refresh counts in sidebar
         } catch (error) {
             toast.error(`Error: ${error.message}`);
             setRequests(originalRequests);
@@ -89,16 +96,15 @@ export default function ManageLeaveRequestsAdmin() {
     };
 
     if (sessionStatus === 'loading' || loading) {
-        return <div className="text-center p-10">Loading Requests...</div>;
+        return <LeaveLayout><div className="text-center p-10">Loading Requests...</div></LeaveLayout>;
     }
 
     return (
-        <>
+        <LeaveLayout>
             <Toaster position="top-center" />
             <ReasonModal reason={selectedReason} onClose={() => setSelectedReason(null)} />
-            <div className="p-4 sm:p-6 lg:p-8 bg-gray-100 min-h-screen">
-                <div className="max-w-6xl mx-auto">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-6">Manage Leave Requests</h1>
+            {selectedAttachment && <AttachmentModal attachmentUrl={selectedAttachment} onClose={() => setSelectedAttachment(null)} />}
+                <div className="">
                     <div className="bg-white shadow-md rounded-lg overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
@@ -109,13 +115,12 @@ export default function ManageLeaveRequestsAdmin() {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dates</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reason</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Attachment</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {requests.length === 0 ? (
-                                        <tr><td colSpan="6" className="text-center py-10 text-gray-500">No leave requests found.</td></tr>
-                                    ) : (
+                                    {requests.length === 0 ? <tr><td colSpan="7" className="text-center py-10 text-gray-500">No leave requests found.</td></tr> :
                                         requests.map(req => (
                                             <tr key={req._id}>
                                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -130,6 +135,11 @@ export default function ManageLeaveRequestsAdmin() {
                                                     <button onClick={() => setSelectedReason(req.reason)} className="text-left w-full truncate hover:text-indigo-600 focus:outline-none cursor-pointer" title="Click to view full reason">{req.reason}</button>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap"><LeaveStatusBadge status={req.status} /></td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {req.attachmentUrl && (
+                                                        <button onClick={() => setSelectedAttachment(req.attachmentUrl)} className="text-indigo-600 hover:text-indigo-900 flex items-center gap-1"><FiPaperclip /> View</button>
+                                                    )}
+                                                </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                     {req.status === 'pending' && (
                                                         <div className="flex gap-2">
@@ -139,14 +149,12 @@ export default function ManageLeaveRequestsAdmin() {
                                                     )}
                                                 </td>
                                             </tr>
-                                        ))
-                                    )}
+                                        ))}
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-            </div>
-        </>
+        </LeaveLayout>
     );
 }

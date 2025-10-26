@@ -2,6 +2,7 @@ import '../styles/globals.css';
 import { SessionProvider } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
+import { PendingCountProvider } from '../context/PendingCountContext';
 
 function MyApp({ Component, pageProps: { session, ...pageProps } }) {
   const router = useRouter();
@@ -20,9 +21,11 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }) {
   // Apply layout to all other pages
   return (
     <SessionProvider session={session}>
+      <PendingCountProvider>
       <Layout>
         <Component {...pageProps} />
       </Layout>
+      </PendingCountProvider>
     </SessionProvider>
   );
 }

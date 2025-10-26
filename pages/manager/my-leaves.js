@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import toast, { Toaster } from 'react-hot-toast';
+import LeaveLayout from '@/components/LeaveLayout';
+import AttachmentModal from '@/components/AttachmentModal';
+import { FiPaperclip } from 'react-icons/fi';
 
 // A reusable component for status badges
 const LeaveStatusBadge = ({ status }) => {
@@ -41,6 +44,7 @@ export default function MyLeavesPage() {
     const [leaves, setLeaves] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedReason, setSelectedReason] = useState(null);
+    const [selectedAttachment, setSelectedAttachment] = useState(null);
 
     useEffect(() => {
         if (sessionStatus === 'loading') return;
@@ -72,16 +76,16 @@ export default function MyLeavesPage() {
     }, [session, sessionStatus, router]);
 
     if (sessionStatus === 'loading' || loading) {
-        return <div className="text-center p-10">Loading your leave history...</div>;
+        return <LeaveLayout><div className="text-center p-10">Loading your leave history...</div></LeaveLayout>;
     }
 
     return (
-        <>
+        <LeaveLayout>
             <Toaster position="top-center" />
             <ReasonModal reason={selectedReason} onClose={() => setSelectedReason(null)} />
-            <div className="p-4 sm:p-6 lg:p-8 bg-gray-100 min-h-screen">
-                <div className="max-w-5xl mx-auto">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-6">My Leave History</h1>
+            {selectedAttachment && <AttachmentModal attachmentUrl={selectedAttachment} onClose={() => setSelectedAttachment(null)} />}
+            <div className="bg-gray-100">
+                <div className="">
                     
                     {leaves.length === 0 ? (
                         <div className="text-center bg-white p-12 rounded-lg shadow-md">
@@ -103,6 +107,7 @@ export default function MyLeavesPage() {
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dates</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reason</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Attachment</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
@@ -124,6 +129,11 @@ export default function MyLeavesPage() {
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <LeaveStatusBadge status={leave.status} />
                                                 </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {leave.attachmentUrl && (
+                                                        <button onClick={() => setSelectedAttachment(leave.attachmentUrl)} className="text-indigo-600 hover:text-indigo-900 flex items-center gap-1"><FiPaperclip /> View</button>
+                                                    )}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -133,6 +143,6 @@ export default function MyLeavesPage() {
                     )}
                 </div>
             </div>
-        </>
+        </LeaveLayout>
     );
 }

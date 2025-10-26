@@ -32,6 +32,10 @@ const leaveSchema = new mongoose.Schema(
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
+    attachmentUrl: {
+    type: String,
+    required: false,
+    },
   },
   { timestamps: true }
 );
