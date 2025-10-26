@@ -108,11 +108,17 @@ export default async function handler(req, res) {
 
     await newLeave.save();
 
-    await sendLeaveApplicationEmailToManager(
-      newLeave,
-      currentUser,
-      managerUser
-    );
+    try {
+      await sendLeaveApplicationEmailToManager(
+        newLeave,
+        currentUser,
+        managerUser
+      );
+    } catch (emailError) {
+      console.error("Leave application saved, but failed to send email:", emailError);
+      // We don't want to fail the whole request if email fails.
+      // The leave is already saved in the database.
+    }
 
     res
       .status(201)
