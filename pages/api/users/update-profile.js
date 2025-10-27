@@ -4,6 +4,8 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import { IncomingForm } from 'formidable';
 import { v2 as cloudinary } from 'cloudinary';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import multer from 'multer';
 
 // Disable Next.js body parser for this route to handle multipart/form-data
 export const config = {
@@ -17,6 +19,16 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+const upload = multer({ storage: multer.memoryStorage() });
+
+const runMiddleware = (req, res, fn) => {
+  return new Promise((resolve, reject) => {
+    fn(req, res, (result) => {
+      if (result instanceof Error) return reject(result);
+      return resolve(result);
+    });
+  });
+};
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -27,11 +39,19 @@ export default async function handler(req, res) {
   if (!session) {
     return res.status(401).json({ message: "Unauthorized" });
   }
+  try {
+    const session = await getServerSession(req, res, authOptions);
+    if (!session) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
   try {
     await connectDB();
+    await runMiddleware(req, res, upload.single('profileImage'));
 
     const form = new IncomingForm();
+    const { name, phone } = req.body;
+    const profileImageFile = req.file;
 
     const data = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
@@ -51,30 +71,45 @@ export default async function handler(req, res) {
         transformation: [{ width: 200, height: 200, crop: "fill", gravity: "face" }]
       });
       newImageUrl = result.secure_url;
+    const user = await User.findById(session.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
     // 2. Prepare data for MongoDB update
     const updateData = {};
     const allowedUserFields = ['name', 'phone'];
+    if (name) user.name = name;
+    if (phone) user.phone = phone;
 
     for (const key in fields) {
       const value = Array.isArray(fields[key]) ? fields[key][0] : fields[key];
       if (allowedUserFields.includes(key)) {
         updateData[key] = value;
       }
+    let newImageUrl = null;
+    if (profileImageFile) {
+      const fileName = `avatars/${user._id}-${Date.now()}-${profileImageFile.originalname.replace(/ /g, '_')}`;
+      const { data, error } = await supabaseAdmin.storage.from('user-profiles').upload(fileName, profileImageFile.buffer, { contentType: profileImageFile.mimetype });
+      if (error) throw new Error('Failed to upload attachment.');
+      newImageUrl = supabaseAdmin.storage.from('user-profiles').getPublicUrl(data.path).data.publicUrl;
     }
 
     if (newImageUrl) {
       updateData.profileImage = newImageUrl;
     }
+    if (newImageUrl) user.profileImage = newImageUrl;
 
     // 3. Update the user in the database
     await User.findByIdAndUpdate(session.user.id, { $set: updateData });
+    await user.save();
 
     res.status(200).json({
       message: "Profile updated successfully",
       newImageUrl: newImageUrl || session.user.profileImage, // Return new or existing image URL
       newName: updateData.name || session.user.name,
+      newImageUrl: user.profileImage,
+      newName: user.name,
     });
   } catch (error) {
     console.error("Error updating user profile:", error);

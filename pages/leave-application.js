@@ -71,7 +71,7 @@ export default function LeaveApplicationPage() {
     const fetchManager = async () => {
       if (session?.user?.assignedManager) {
         try {
-          const res = await fetch(`/api/users/by-email?email=${session.user.assignedManager}`);
+          const res = await fetch(`/api/users/by-email?email=${encodeURIComponent(session.user.assignedManager)}`);
           if (res.ok) {
             const managerData = await res.json();
             setManagerName(managerData.name || 'Unknown Manager');

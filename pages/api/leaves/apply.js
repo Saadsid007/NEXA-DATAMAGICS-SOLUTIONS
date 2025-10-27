@@ -44,22 +44,26 @@ export default async function handler(req, res) {
     let attachmentUrl = null;
 
     if (attachment) {
-      // Sanitize the filename to handle special characters for the URL
-      const sanitizedOriginalName = encodeURIComponent(attachment.originalname.replace(/ /g, '_'));
-      const fileName = `${session.user.id}/${Date.now()}-${sanitizedOriginalName}`;
-      
-      const { data, error } = await supabaseAdmin.storage
-        .from('leave-attachments')
-        .upload(fileName, attachment.buffer, {
-          contentType: attachment.mimetype,
-        });
+        try {
+            // Sanitize the filename to handle special characters for the URL
+            const sanitizedOriginalName = encodeURIComponent(attachment.originalname.replace(/ /g, '_'));
+            const fileName = `${session.user.id}/${Date.now()}-${sanitizedOriginalName}`;
+            
+            const { data, error } = await supabaseAdmin.storage
+              .from('leave-attachments')
+              .upload(fileName, attachment.buffer, {
+                contentType: attachment.mimetype,
+              });
+    
+            if (error) {
+              throw error; // Throw the Supabase error to be caught by the catch block
+            }
 
-      if (error) {
-        console.error('Supabase Upload Error:', error);
-        throw new Error('Failed to upload attachment to Supabase.');
-      }
-
-      attachmentUrl = supabaseAdmin.storage.from('leave-attachments').getPublicUrl(data.path).data.publicUrl;
+            attachmentUrl = supabaseAdmin.storage.from('leave-attachments').getPublicUrl(data.path).data.publicUrl;
+        } catch (uploadError) {
+            console.error('Supabase Upload Error:', uploadError);
+            return res.status(500).json({ message: 'Failed to upload attachment.' });
+        }
     }
 
     const existingPendingLeave = await Leave.findOne({

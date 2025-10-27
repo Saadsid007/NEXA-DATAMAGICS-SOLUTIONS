@@ -58,12 +58,13 @@ export default async function handler(req, res) {
             .populate({ path: 'user', select: 'name employeeCode email' })
             .lean();
 
-        if (!updatedLeave) {
-            return res.status(404).json({ message: 'Leave request not found or you are not authorized to update it.' });
+        if (!updatedLeave || !updatedLeave.user) {
+            // This case is unlikely if the previous findOne worked, but it's a good safeguard.
+            console.error(`Leave ${leaveToUpdate._id} updated, but user not found for email notification.`);
+            return res.status(200).json({ ...leaveToUpdate.toObject(), emailWarning: "Leave status updated, but user not found for notification." });
         }
         
         try {
-            // The user object is already populated in updatedLeave
             await sendLeaveStatusUpdateEmailToUser(updatedLeave, updatedLeave.user);
             return res.status(200).json(updatedLeave);
         } catch (emailError) {
