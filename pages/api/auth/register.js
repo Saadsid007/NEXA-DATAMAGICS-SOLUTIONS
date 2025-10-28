@@ -1,6 +1,7 @@
 import { connectDB } from "../../../lib/mongodb";
 import User from "../../../models/User";
 import bcrypt from "bcryptjs";
+import { sendNewRegistrationEmailToAdmin } from "@/lib/email";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -35,7 +36,22 @@ export default async function handler(req, res) {
       status: "pending", // Default status
     });
 
-    res.status(201).json({ message: "User registered successfully", user: newUser });
+    // Notify all admins about the new registration
+    const admins = await User.find({ role: "admin" }).select("name email").lean();
+
+    for (const admin of admins) {
+      try {
+        await sendNewRegistrationEmailToAdmin(newUser, admin);
+      } catch (emailError) {
+        console.error(`Error sending new registration email to admin: ${admin.email}`, emailError);
+        // Continue to next admin without failing the whole request
+        continue;
+      }
+    }
+
+
+
+    res.status(201).json({ message: "User registered successfully! Your account is pending admin approval.", user: newUser });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });

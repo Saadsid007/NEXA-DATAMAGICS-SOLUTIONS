@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]";
 import { connectDB } from "@/lib/mongodb";
 import User from "../../../models/User";
+import { sendRegistrationStatusEmailToUser } from "@/lib/email";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -42,7 +43,14 @@ export default async function handler(req, res) {
       return res.status(404).json({ message: "User not found." });
     }
 
-    res.status(200).json({ message: `User ${action} successfully.`, user: updatedUser });
+    // Send email notification to the user about their registration status
+    try {
+      await sendRegistrationStatusEmailToUser(updatedUser);
+      res.status(200).json({ message: `User ${action} successfully. Email sent to user.`, user: updatedUser });
+    } catch (emailError) {
+      console.error("Error sending registration status email to user:", emailError);
+      res.status(200).json({ message: `User ${action} successfully, but failed to send email notification.`, user: updatedUser, emailError: emailError.message });
+    }
   } catch (error) {
     console.error("Error handling user request:", error);
     res.status(500).json({ message: "Failed to handle user request.", error: error.message });
