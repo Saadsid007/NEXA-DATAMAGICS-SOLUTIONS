@@ -77,7 +77,11 @@ export default function Login() {
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700">
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
               </button>
-            </div>
+            </div> {/* This closes the inner relative div for input+eye */}
+          </div> {/* This closes the main div for the password field */}
+          {/* Forgot Password link is now a direct child of the form, ensuring it's not obstructed */}
+          <div className="text-right -mt-2"> {/* -mt-2 to bring it closer to the password field */}
+            <Link href="/forgot-password" className="text-sm font-medium text-blue-600 hover:underline">Forgot Password?</Link>
           </div>
           <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed">
             {isLoading ? "Signing In..." : "Sign In"}

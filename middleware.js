@@ -5,12 +5,16 @@ export async function middleware(req) {
   // getToken will get the session on the server
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const { pathname } = req.nextUrl;
-  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
+  // Allow access to auth-related pages and the password reset flow
+  const isPublicAuthPage = pathname.startsWith('/login') || 
+                         pathname.startsWith('/register') || 
+                         pathname.startsWith('/forgot-password') || 
+                         pathname.startsWith('/reset-password');
 
   // If the user is not authenticated
   if (!token) {
     // Allow access to auth pages and the home page
-    if (isAuthPage || pathname === '/') {
+    if (isPublicAuthPage || pathname === '/') {
       return NextResponse.next();
     }
     // Redirect any other unauthenticated access to the login page
@@ -20,20 +24,23 @@ export async function middleware(req) {
   // If the user is authenticated
   const { role, profileComplete, status, sub: userId } = token;
 
-  // If user is not approved by admin, redirect to a pending page
-  if (status !== 'approved' && pathname !== '/pending-approval') {
-    return NextResponse.redirect(new URL('/pending-approval', req.url));
+  // Handle different user statuses
+  if (status === 'pending' && pathname !== '/pending-approval') {
+      return NextResponse.redirect(new URL('/pending-approval', req.url));
+  }
+  if (status === 'rejected' && pathname !== '/rejected') {
+      return NextResponse.redirect(new URL('/rejected', req.url));
   }
 
-  // If a user is already on the pending page, let them stay there and do nothing else.
-  if (pathname === '/pending-approval') {
+  // If a user is already on a status page, let them stay there and do nothing else.
+  if (pathname === '/pending-approval' || pathname === '/rejected') {
     return NextResponse.next();
   }
 
   // If user is approved, handle redirects for logged-in users
   if (status === 'approved') {
     // If trying to access a public page (login, register, home) while logged in, redirect to the correct dashboard
-    if (isAuthPage || pathname === '/') {
+    if (isPublicAuthPage || pathname === '/') {
       let destination = '/dashboard'; // Default for 'user'
       if (role === 'admin') destination = '/admin';
       if (role === 'manager') destination = '/manager';

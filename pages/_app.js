@@ -8,7 +8,7 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }) {
   const router = useRouter();
 
   // Pages that should not have the main layout
-  const noLayoutPages = ['/login', '/register', '/', '/pending-approval', '/profile-setup'];
+  const noLayoutPages = ['/login', '/register', '/', '/pending-approval', '/profile-setup', '/reset-password', '/forgot-password', '/rejected'];
 
   if (noLayoutPages.includes(router.pathname)) {
     return (

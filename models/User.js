@@ -25,6 +25,8 @@ const userSchema = new mongoose.Schema(
     holdingAssets: { type: String },
     managerAssign: { type: String },
     profileImage: { type: String },
+    passwordResetToken: { type: String },
+    passwordResetExpires: { type: Date },
     customFields: {
       type: Map,
       of: String,
