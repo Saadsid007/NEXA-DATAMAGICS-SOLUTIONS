@@ -1,14 +1,19 @@
 import Marquee from "@/components/Marquee";
-import Navbar from "@/components/Navbar";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { FiUser, FiFileText, FiUsers } from "react-icons/fi";
+import WelcomeHeader from "@/components/WelcomeHeader";
+import QuickActionsGrid from "@/components/QuickActionsGrid";
+import QuickStats from "@/components/QuickStats";
+import Footer from "@/components/Footer";
+import HolidayCalendar from "@/components/HolidayCalendar";
+import MobileQuickLinks from "@/components/MobileQuickLinks";
+import CompanyOverview from "@/components/CompanyOverview";
 
 export default function ManagerDashboard() {
   const { data: session, status } = useSession();
 
   if (status === "loading") {
-    return <p>Loading...</p>;
+    return <p className="text-center p-10">Loading...</p>;
   }
 
   if (!session || !session.user) {
@@ -22,38 +27,26 @@ export default function ManagerDashboard() {
     );
   }
 
-  const managerName = session.user.name || "Manager";
+  const userName = session.user.name || "Manager";
 
   return (
     <>
     <Marquee />
-    <div className="p-6">
-      <div className="bg-white p-8 rounded-xl shadow-md mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Manager Dashboard</h1>
-        <p className="text-gray-600 mt-2">Welcome, {managerName}!</p>
+    {/* Main content area with padding */}
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="space-y-8">
+        <WelcomeHeader userName={userName} />
+        <CompanyOverview />
+        <QuickStats />
+        <MobileQuickLinks />
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 hidden lg:block">
+            <QuickActionsGrid />
+          </div>
+          <div className="xl:col-span-1"><HolidayCalendar /></div>
+        </div>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Link href="/profile" className="block p-6 bg-blue-50 rounded-lg border border-blue-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-4">
-              <FiUser className="text-blue-500 text-4xl" />
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">My Profile</h2>
-                <p className="text-gray-600">View and manage your personal information.</p>
-              </div>
-            </div>
-        </Link>
-        <Link href="/leave-application" className="block p-6 bg-green-50 rounded-lg border border-green-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-4">
-              <FiFileText className="text-green-500 text-4xl" />
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">Apply for Leave</h2>
-                <p className="text-gray-600">Submit and track your leave requests.</p>
-              </div>
-            </div>
-        </Link>
-        {/* Add manager-specific links here in the future */}
-      </div>
+      <Footer />
     </div>
     </>
   );

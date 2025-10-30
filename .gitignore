@@ -43,3 +43,4 @@ next-env.d.ts
 
 /pages/api/auth/setup-admin.js
 .gitignore
+/lib/holidays.js

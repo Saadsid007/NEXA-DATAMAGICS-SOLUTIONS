@@ -48,7 +48,7 @@ export async function middleware(req) {
     }
 
     // If an admin tries to access a page not meant for them, redirect to the admin dashboard.
-    if (role === 'admin' && !pathname.startsWith('/admin') && !pathname.startsWith('/manager') && !pathname.startsWith('/resignation')) {
+    if (role === 'admin' && !pathname.startsWith('/admin') && !pathname.startsWith('/manager') && !pathname.startsWith('/resignation') && !pathname.startsWith('/announcements') && !pathname.startsWith('/holidays')) {
       return NextResponse.redirect(new URL('/admin', req.url));
     }
   }
